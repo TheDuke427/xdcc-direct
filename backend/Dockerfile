@@ -9,4 +9,4 @@ COPY . .
 
 RUN mkdir -p /app/downloads
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "echo 'nameserver 127.0.0.1' > /etc/resolv.conf && uvicorn main:app --host 0.0.0.0 --port 8080"]
