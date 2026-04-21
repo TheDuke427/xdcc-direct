@@ -267,6 +267,8 @@ class IRCClient:
             cmd = parts[1]
             if cmd in ("NOTICE", "PRIVMSG") and sender.lower() == self.bot.lower():
                 text = _strip_colors(line.split(":", 2)[-1].strip() if line.count(":") >= 2 else "")
+                idle_deadline = loop.time() + 3.0  # reset on any bot message
+                logger.info("Bot NOTICE: %r", text)
                 m = PACK_LIST_RE.search(text)
                 if m:
                     packs.append({
@@ -275,7 +277,6 @@ class IRCClient:
                         "size": m.group(3),
                         "filename": m.group(4).strip(),
                     })
-                    idle_deadline = loop.time() + 3.0  # reset only on bot pack entries
         return packs
 
     async def _disconnect(self):
