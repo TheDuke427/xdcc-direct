@@ -40,6 +40,7 @@ class IRCClient:
         pack: str,
         download_dir: str,
         progress_cb: Callable[[dict], Awaitable[None]],
+        message_cb: Callable[[str], Awaitable[None]] | None = None,
         ssl: bool = False,
     ):
         self.server = server
@@ -50,6 +51,7 @@ class IRCClient:
         self.pack = pack
         self.download_dir = download_dir
         self.progress_cb = progress_cb
+        self.message_cb = message_cb
         self.ssl = ssl
 
         self._reader: asyncio.StreamReader | None = None
@@ -125,6 +127,17 @@ class IRCClient:
             if line.startswith("PING"):
                 token = line.split(":", 1)[1] if ":" in line else line.split()[1]
                 await self._send(f"PONG :{token}")
+
+            # Surface NOTICE/PRIVMSG from the bot so the UI can show queue status
+            if self.message_cb and ("NOTICE" in line or "PRIVMSG" in line):
+                parts = line.split()
+                if len(parts) >= 4:
+                    sender_nick = parts[0].lstrip(":").split("!")[0]
+                    if sender_nick.lower() == self.bot.lower():
+                        text = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else ""
+                        if text:
+                            logger.info("Bot message: %s", text)
+                            await self.message_cb(text)
 
             if "DCC SEND" in line:
                 m = DCC_SEND_RE.search(line)

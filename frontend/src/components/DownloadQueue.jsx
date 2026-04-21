@@ -75,6 +75,10 @@ export default function DownloadQueue({ jobs, onUpdate }) {
             <div className={styles.filename}>{job.filename}</div>
           )}
 
+          {job.status === 'connecting' && job.message && (
+            <div className={styles.botMessage}>{job.message}</div>
+          )}
+
           {job.status === 'downloading' && (
             <div className={styles.progressWrap}>
               <div className={styles.bar}>

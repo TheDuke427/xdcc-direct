@@ -44,6 +44,7 @@ class DownloadJob:
     file_path: str = ""
     speed: float = 0.0
     eta: int | None = None
+    message: str = ""
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -185,6 +186,11 @@ class DownloadManager:
                     job.total = info["total"]
                     job.speed = info.get("speed", 0.0)
                     job.eta = info.get("eta")
+                    job.message = ""
+                    await self._notify(job)
+
+                async def bot_message(msg: str):
+                    job.message = msg
                     await self._notify(job)
 
                 client = IRCClient(
@@ -196,15 +202,20 @@ class DownloadManager:
                     pack=job.pack,
                     download_dir=self.download_dir,
                     progress_cb=progress,
+                    message_cb=bot_message,
                     ssl=job.ssl,
                 )
-                file_path = await client.run()
+                timeout = int(os.environ.get("XDCC_TIMEOUT", "300"))
+                file_path = await asyncio.wait_for(client.run(), timeout=timeout)
                 job.file_path = file_path
                 job.speed = 0.0
                 job.eta = None
                 job.status = Status.COMPLETE
         except asyncio.CancelledError:
             job.status = Status.CANCELLED
+        except asyncio.TimeoutError:
+            job.status = Status.FAILED
+            job.error = "Timed out waiting for bot response"
         except Exception as exc:
             logger.exception("Download %s failed", job.id)
             job.status = Status.FAILED
