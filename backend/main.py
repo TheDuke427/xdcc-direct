@@ -132,7 +132,7 @@ async def fetch_pack_list(req: PackListRequest):
         pack="", download_dir="", progress_cb=noop,
     )
     try:
-        packs = await asyncio.wait_for(client.run_list(), timeout=60)
+        packs = await asyncio.wait_for(client.run_list(), timeout=150)
     except asyncio.TimeoutError:
         raise HTTPException(504, "Timed out waiting for pack list")
     except Exception as e:

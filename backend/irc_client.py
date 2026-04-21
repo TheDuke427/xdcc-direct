@@ -246,7 +246,7 @@ class IRCClient:
         loop = asyncio.get_event_loop()
         # Idle deadline tracks silence from the bot, not from any IRC line.
         # Server PINGs must not reset this timer.
-        idle_deadline = loop.time() + 5.0
+        idle_deadline = loop.time() + 15.0
         gen = self._lines()
         while True:
             remaining = idle_deadline - loop.time()
