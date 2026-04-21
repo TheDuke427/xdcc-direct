@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from download_manager import DownloadManager
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 DOWNLOAD_DIR = os.environ.get("DOWNLOAD_DIR", "./downloads")
