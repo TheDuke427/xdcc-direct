@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 
 import functools
@@ -117,6 +118,13 @@ async def cancel_download(job_id: str):
 def _ixirc_search_sync(q: str) -> dict:
     scraper = cloudscraper.create_scraper()
     r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
+    if r.status_code == 200 and b"/lander" in r.content:
+        m = re.search(r'href="(/lander[^"]*)"', r.text)
+        if m:
+            lander_url = f"https://ixirc.com{m.group(1)}"
+            logger.info("ixirc lander detected, visiting %s", lander_url)
+            scraper.get(lander_url, timeout=15)
+        r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
     logger.info("ixirc status=%d body_preview=%r", r.status_code, r.text[:300])
     r.raise_for_status()
     return r.json()
