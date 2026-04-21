@@ -5,10 +5,11 @@ import asyncio
 import json
 import logging
 import os
-import re
 from contextlib import asynccontextmanager
 
-import httpx
+import functools
+
+import cloudscraper
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -113,29 +114,22 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
-async def _ixirc_get(q: str) -> dict:
-    """Fetch ixirc.com search, following their JS lander if encountered."""
-    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-        r = await client.get("https://ixirc.com/api/", params={"q": q})
-        if r.status_code == 200 and b"/lander" in r.content:
-            # Simulate the JS redirect: visit the lander so it can set cookies
-            m = re.search(r'href="(/lander[^"]*)"', r.text)
-            if m:
-                await client.get(f"https://ixirc.com{m.group(1)}")
-            # Retry with whatever cookies the lander set
-            r = await client.get("https://ixirc.com/api/", params={"q": q})
-    return r
+def _ixirc_search_sync(q: str) -> dict:
+    scraper = cloudscraper.create_scraper()
+    r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
+    r.raise_for_status()
+    return r.json()
 
 
 @app.get("/api/search")
 async def search_xdcc(q: str = ""):
     if len(q.strip()) < 2:
         return []
-    r = await _ixirc_get(q)
+    loop = asyncio.get_event_loop()
     try:
-        data = r.json()
-    except Exception:
-        raise HTTPException(502, f"ixirc.com returned non-JSON (status={r.status_code}): {r.text[:200]}")
+        data = await loop.run_in_executor(None, functools.partial(_ixirc_search_sync, q))
+    except Exception as e:
+        raise HTTPException(502, f"ixirc.com search failed: {e}")
 
     networks = {n["nid"]: n for n in data.get("networks", [])}
     channels = {c["cid"]: c for c in data.get("channels", [])}
