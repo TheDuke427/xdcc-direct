@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from download_manager import DownloadManager
+from irc_client import IRCClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
