@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 
 import httpx
@@ -112,12 +113,25 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
+async def _ixirc_get(q: str) -> dict:
+    """Fetch ixirc.com search, following their JS lander if encountered."""
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        r = await client.get("https://ixirc.com/api/", params={"q": q})
+        if r.status_code == 200 and b"/lander" in r.content:
+            # Simulate the JS redirect: visit the lander so it can set cookies
+            m = re.search(r'href="(/lander[^"]*)"', r.text)
+            if m:
+                await client.get(f"https://ixirc.com{m.group(1)}")
+            # Retry with whatever cookies the lander set
+            r = await client.get("https://ixirc.com/api/", params={"q": q})
+    return r
+
+
 @app.get("/api/search")
 async def search_xdcc(q: str = ""):
     if len(q.strip()) < 2:
         return []
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        r = await client.get("https://ixirc.com/api/", params={"q": q})
+    r = await _ixirc_get(q)
     try:
         data = r.json()
     except Exception:
