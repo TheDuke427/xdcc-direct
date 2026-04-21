@@ -2,6 +2,7 @@
 Async IRC client with XDCC/DCC SEND support.
 """
 import asyncio
+import ipaddress
 import re
 import struct
 import socket
@@ -10,7 +11,24 @@ import os
 import time
 from collections import deque
 import aiofiles
+import dns.resolver
 from typing import Callable, Awaitable
+
+_resolver = dns.resolver.Resolver(configure=False)
+_resolver.nameservers = ['127.0.0.1']
+_resolver.timeout = 5
+_resolver.lifetime = 10
+
+
+async def _resolve(hostname: str) -> str:
+    try:
+        ipaddress.ip_address(hostname)
+        return hostname
+    except ValueError:
+        pass
+    loop = asyncio.get_event_loop()
+    answers = await loop.run_in_executor(None, lambda: _resolver.resolve(hostname, 'A'))
+    return str(answers[0])
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +95,18 @@ class IRCClient:
 
     async def _connect(self):
         logger.info("Connecting to %s:%d", self.server, self.port)
+        host = await _resolve(self.server)
+        if host != self.server:
+            logger.info("Resolved %s -> %s", self.server, host)
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
             self._reader, self._writer = await asyncio.open_connection(
-                self.server, self.port, ssl=ctx
+                host, self.port, ssl=ctx
             )
         else:
             self._reader, self._writer = await asyncio.open_connection(
-                self.server, self.port
+                host, self.port
             )
 
     async def _register(self):
