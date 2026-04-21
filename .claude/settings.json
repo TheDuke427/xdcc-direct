@@ -21,7 +21,8 @@
       "WebFetch(domain:snyk.io)",
       "Bash(git commit *)",
       "Bash(ssh mike@ubuntuserver.lan \"git pull && docker compose up --build -d backend\")",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(ssh root@192.168.86.59 \"docker compose -f /opt/xdcc/docker-compose.yml exec backend python3 -c \\\\\"import urllib.request; print\\(urllib.request.urlopen\\('http://localhost:8000/v1/vpn/status'\\).read\\(\\)\\)\\\\\"\")"
     ]
   }
 }

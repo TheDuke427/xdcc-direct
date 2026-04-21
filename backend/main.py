@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 DOWNLOAD_DIR      = os.environ.get("DOWNLOAD_DIR", "./downloads")
 GLUETUN_CONTROL   = os.environ.get("GLUETUN_CONTROL", "http://localhost:8000")
+GLUETUN_AUTH      = (
+    os.environ.get("GLUETUN_CONTROL_USER", "xdcc"),
+    os.environ.get("GLUETUN_CONTROL_PASS", "xdcc"),
+)
 MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", "3"))
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -201,9 +205,10 @@ async def remove_channel(channel_id: int):
 
 @app.get("/api/vpn/status")
 async def get_vpn_status():
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=5.0, auth=GLUETUN_AUTH) as client:
         try:
             r = await client.get(f"{GLUETUN_CONTROL}/v1/vpn/status")
+            r.raise_for_status()
             return r.json()
         except Exception as e:
             raise HTTPException(502, f"VPN control unreachable: {e}")
@@ -217,12 +222,13 @@ class VpnStatusRequest(BaseModel):
 async def set_vpn_status(req: VpnStatusRequest):
     if req.status not in ("running", "stopped"):
         raise HTTPException(400, "status must be 'running' or 'stopped'")
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=15.0, auth=GLUETUN_AUTH) as client:
         try:
             r = await client.put(
                 f"{GLUETUN_CONTROL}/v1/vpn/status",
                 json={"status": req.status},
             )
+            r.raise_for_status()
             return r.json()
         except Exception as e:
             raise HTTPException(502, f"VPN control unreachable: {e}")
