@@ -121,7 +121,13 @@ async def search_xdcc(q: str = ""):
             client.get("https://nibl.co/api/bots"),
             client.get("https://nibl.co/api/search", params={"query": q}),
         )
-    bots_by_id = {b["id"]: b for b in bots_r.json().get("bots", [])}
+
+    bots_by_id = {}
+    try:
+        bots_by_id = {b["id"]: b for b in bots_r.json().get("bots", [])}
+    except Exception:
+        logger.warning("nibl.co /api/bots parse failed (status=%s body=%r)", bots_r.status_code, bots_r.text[:200])
+
     results = []
     for r in search_r.json().get("results", [])[:100]:
         bot = bots_by_id.get(r.get("botId"), {})
