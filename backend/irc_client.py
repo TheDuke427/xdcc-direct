@@ -122,6 +122,11 @@ class IRCClient:
                     await self._send(f"PONG :{token}")
                 if re.search(r"^:\S+ 366 ", line):
                     break
+                # Join error numerics: key required, invite only, banned, full, etc.
+                m = re.search(r"^:\S+ (47[0-9]|405|403) ", line)
+                if m:
+                    reason = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else line
+                    raise RuntimeError(f"Cannot join {self.channel}: {reason}")
 
         logger.info("Sending XDCC request to %s: xdcc send %s", self.bot, self.pack)
         await self._send(f"PRIVMSG {self.bot} :xdcc send {self.pack}")
