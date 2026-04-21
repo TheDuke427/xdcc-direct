@@ -112,24 +112,34 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
+_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; xdcc-manager/1.0)"}
+
 @app.get("/api/search")
 async def search_xdcc(q: str = ""):
     if len(q.strip()) < 2:
         return []
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=_HEADERS, follow_redirects=True) as client:
         bots_r, search_r = await asyncio.gather(
             client.get("https://nibl.co/api/bots"),
             client.get("https://nibl.co/api/search", params={"query": q}),
         )
 
+    logger.info("nibl bots: status=%s body=%r", bots_r.status_code, bots_r.text[:300])
+    logger.info("nibl search: status=%s body=%r", search_r.status_code, search_r.text[:300])
+
     bots_by_id = {}
     try:
         bots_by_id = {b["id"]: b for b in bots_r.json().get("bots", [])}
     except Exception:
-        logger.warning("nibl.co /api/bots parse failed (status=%s body=%r)", bots_r.status_code, bots_r.text[:200])
+        pass
+
+    try:
+        raw = search_r.json()
+    except Exception:
+        raise HTTPException(502, f"nibl.co search returned non-JSON (status={search_r.status_code}): {search_r.text[:200]}")
 
     results = []
-    for r in search_r.json().get("results", [])[:100]:
+    for r in raw.get("results", [])[:100]:
         bot = bots_by_id.get(r.get("botId"), {})
         results.append({
             "bot": r.get("botNickname", ""),
