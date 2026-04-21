@@ -15,12 +15,16 @@ async function request(method, path, body) {
 }
 
 export const api = {
-  listDownloads: () => request('GET', '/downloads'),
-  addDownload: (data) => request('POST', '/downloads', data),
-  cancelDownload: (id) => request('POST', `/downloads/${id}/cancel`),
-  deleteDownload: (id) => request('DELETE', `/downloads/${id}`),
-  searchXdcc: (q) => request('GET', `/search?q=${encodeURIComponent(q)}`),
-  packList: (data) => request('POST', '/packlist', data),
-  listFiles: () => request('GET', '/files'),
-  fileUrl: (name) => `${BASE}/files/${encodeURIComponent(name)}`,
+  listDownloads:    () => request('GET', '/downloads'),
+  addDownload:      (data) => request('POST', '/downloads', data),
+  cancelDownload:   (id) => request('POST', `/downloads/${id}/cancel`),
+  deleteDownload:   (id) => request('DELETE', `/downloads/${id}`),
+  searchXdcc:       (q) => request('GET', `/search?q=${encodeURIComponent(q)}`),
+  packList:         (data) => request('POST', '/packlist', data),
+  listFiles:        () => request('GET', '/files'),
+  fileUrl:          (name) => `${BASE}/files/${encodeURIComponent(name)}`,
+  indexStatus:      () => request('GET', '/index/status'),
+  listChannels:     () => request('GET', '/index/channels'),
+  addChannel:       (data) => request('POST', '/index/channels', data),
+  removeChannel:    (id) => request('DELETE', `/index/channels/${id}`),
 }

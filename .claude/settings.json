@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(docker compose *)",
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:sunxdcc.com)",
+      "WebFetch(domain:xdcc.eu)",
+      "WebFetch(domain:www.xdcc.eu)",
+      "WebFetch(domain:snyk.io)",
+      "Bash(git commit *)",
+      "Bash(ssh mike@ubuntuserver.lan \"git pull && docker compose up --build -d backend\")",
+      "Bash(git pull *)"
+    ]
+  }
+}

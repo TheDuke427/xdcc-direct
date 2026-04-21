@@ -62,7 +62,7 @@ export default function SearchTab({ onDownloaded, query, onQueryChange, results,
       {error && <p className={styles.error}>{error}</p>}
 
       {results === null && !loading && (
-        <p className={styles.hint}>Searches the sunxdcc.com index</p>
+        <p className={styles.hint}>Searches the local index — add channels in the Index tab</p>
       )}
 
       {results !== null && results.length === 0 && (

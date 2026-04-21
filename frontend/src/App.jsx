@@ -3,6 +3,7 @@ import AddDownloadForm from './components/AddDownloadForm'
 import DownloadQueue from './components/DownloadQueue'
 import FileLibrary from './components/FileLibrary'
 import SearchTab from './components/SearchTab'
+import IndexTab from './components/IndexTab'
 import { useWebSocket } from './useWebSocket'
 import { api } from './api'
 import styles from './App.module.css'
@@ -68,6 +69,12 @@ export default function App() {
           >
             Files
           </button>
+          <button
+            className={tab === 'index' ? styles.tabActive : styles.tab}
+            onClick={() => setTab('index')}
+          >
+            Index
+          </button>
         </div>
 
         <div className={styles.panel}>
@@ -87,6 +94,7 @@ export default function App() {
             </>
           )}
           {tab === 'files' && <FileLibrary />}
+          {tab === 'index' && <IndexTab />}
         </div>
       </main>
     </div>
