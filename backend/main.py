@@ -188,19 +188,27 @@ async def _search_xdcceu(client: httpx.AsyncClient, q: str) -> list[dict]:
     results = []
     try:
         soup = BeautifulSoup(r.text, "html.parser")
+        def _td(tds, i):
+            return tds[i].get_text(strip=True) if i < len(tds) else ""
+
         for tr in soup.select("#table tbody tr"):
-            tds = tr.find_all("td")
-            if len(tds) < 7:
+            tds = tr.find_all(["td", "th"])
+            # Skip header/separator rows — need at least bot, pack, filename
+            if len(tds) < 4:
+                continue
+            bot  = _td(tds, 2)
+            pack = _td(tds, 3)
+            if not bot or not pack:
                 continue
             results.append({
-                "bot": tds[2].get_text(strip=True),
-                "pack": tds[3].get_text(strip=True),
-                "filename": tds[6].get_text(strip=True),
-                "size": tds[5].get_text(strip=True),
-                "server": _resolve_server(tds[0].get_text(strip=True)),
+                "bot": bot,
+                "pack": pack,
+                "filename": _td(tds, 6) or _td(tds, 5),
+                "size": _td(tds, 5) if len(tds) >= 7 else _td(tds, 4),
+                "server": _resolve_server(_td(tds, 0)),
                 "port": 6667,
-                "channel": tds[1].get_text(strip=True),
-                "gets": tds[4].get_text(strip=True),
+                "channel": _td(tds, 1),
+                "gets": _td(tds, 4) if len(tds) >= 7 else "",
                 "source": "xdcc.eu",
             })
     except Exception as e:

@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { api } from '../api'
 import styles from './SearchTab.module.css'
 
-export default function SearchTab({ onDownloaded }) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState(null)
+export default function SearchTab({ onDownloaded, query, onQueryChange, results, onResultsChange }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [getting, setGetting] = useState(null)
@@ -15,7 +13,7 @@ export default function SearchTab({ onDownloaded }) {
     setLoading(true)
     setError('')
     try {
-      setResults(await api.searchXdcc(query))
+      onResultsChange(await api.searchXdcc(query))
     } catch (err) {
       setError('Search failed: ' + err.message)
     } finally {
@@ -51,7 +49,7 @@ export default function SearchTab({ onDownloaded }) {
           className={styles.input}
           placeholder="Search filenames…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => onQueryChange(e.target.value)}
           autoFocus
         />
         <button type="submit" className={styles.btn} disabled={loading}>

@@ -10,6 +10,8 @@ import styles from './App.module.css'
 export default function App() {
   const [jobs, setJobs] = useState([])
   const [tab, setTab] = useState('search')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
 
   const handleWsMessage = useCallback((job) => {
     setJobs((prev) => {
@@ -70,7 +72,13 @@ export default function App() {
 
         <div className={styles.panel}>
           {tab === 'search' && (
-            <SearchTab onDownloaded={() => setTab('queue')} />
+            <SearchTab
+              onDownloaded={() => setTab('queue')}
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              results={searchResults}
+              onResultsChange={setSearchResults}
+            />
           )}
           {tab === 'queue' && (
             <>
