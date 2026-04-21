@@ -62,7 +62,7 @@ export default function SearchTab({ onDownloaded }) {
       {error && <p className={styles.error}>{error}</p>}
 
       {results === null && !loading && (
-        <p className={styles.hint}>Searches the nibl.co index — Rizon XDCC bots</p>
+        <p className={styles.hint}>Searches the sunxdcc.com index</p>
       )}
 
       {results !== null && results.length === 0 && (

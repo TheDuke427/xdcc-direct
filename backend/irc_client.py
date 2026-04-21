@@ -112,6 +112,7 @@ class IRCClient:
                 break
 
         if self.channel:
+            logger.info("Joining channel %s", self.channel)
             await self._send(f"JOIN {self.channel}")
             # Wait for 366 (End of /NAMES) — confirms server has processed our JOIN
             async for line in self._lines():
