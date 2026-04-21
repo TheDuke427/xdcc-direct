@@ -117,6 +117,7 @@ async def cancel_download(job_id: str):
 def _ixirc_search_sync(q: str) -> dict:
     scraper = cloudscraper.create_scraper()
     r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
+    logger.info("ixirc status=%d body_preview=%r", r.status_code, r.text[:300])
     r.raise_for_status()
     return r.json()
 
