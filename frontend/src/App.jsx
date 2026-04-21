@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import AddDownloadForm from './components/AddDownloadForm'
 import DownloadQueue from './components/DownloadQueue'
 import FileLibrary from './components/FileLibrary'
@@ -13,6 +13,8 @@ export default function App() {
   const [tab, setTab] = useState('search')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState(null)
+  const [vpn, setVpn] = useState(null)      // null | 'running' | 'stopped'
+  const [vpnBusy, setVpnBusy] = useState(false)
 
   const handleWsMessage = useCallback((job) => {
     setJobs((prev) => {
@@ -25,6 +27,36 @@ export default function App() {
   }, [])
 
   useWebSocket(handleWsMessage)
+
+  useEffect(() => {
+    api.getVpnStatus().then(d => setVpn(d.status)).catch(() => setVpn('unknown'))
+    const t = setInterval(() => {
+      api.getVpnStatus().then(d => setVpn(d.status)).catch(() => {})
+    }, 10000)
+    return () => clearInterval(t)
+  }, [])
+
+  async function toggleVpn() {
+    if (vpnBusy) return
+    setVpnBusy(true)
+    try {
+      const next = vpn === 'running' ? 'stopped' : 'running'
+      await api.setVpnStatus(next)
+      setVpn(next)
+      // Poll until gluetun confirms the transition
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 1500))
+        const d = await api.getVpnStatus().catch(() => null)
+        if (d?.status === next) break
+      }
+      const d = await api.getVpnStatus().catch(() => null)
+      if (d) setVpn(d.status)
+    } catch (e) {
+      console.error('VPN toggle failed', e)
+    } finally {
+      setVpnBusy(false)
+    }
+  }
 
   async function refresh() {
     try {
@@ -44,6 +76,17 @@ export default function App() {
       <header className={styles.header}>
         <h1 className={styles.logo}>XDCC</h1>
         <span className={styles.subtitle}>Download Manager</span>
+        <button
+          className={
+            vpnBusy ? styles.vpnBusy :
+            vpn === 'running' ? styles.vpnOn : styles.vpnOff
+          }
+          onClick={toggleVpn}
+          disabled={vpnBusy || vpn === null}
+          title={vpn === 'running' ? 'VPN active — click to disable' : 'VPN off — click to enable'}
+        >
+          {vpnBusy ? '…' : vpn === 'running' ? '⬤ VPN' : '◯ Direct'}
+        </button>
         {active > 0 && (
           <span className={styles.activeBadge}>{active} active</span>
         )}

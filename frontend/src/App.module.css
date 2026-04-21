@@ -25,9 +25,26 @@
   color: #64748b;
 }
 
-.activeBadge {
+.vpnOn, .vpnOff, .vpnBusy {
   margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 99px;
+  cursor: pointer;
+  border: none;
+  letter-spacing: 0.03em;
+  transition: opacity 0.15s;
+}
+.vpnOn   { background: #16532222; color: #4ade80; border: 1px solid #4ade8044; }
+.vpnOff  { background: #44444422; color: #94a3b8; border: 1px solid #44444466; }
+.vpnBusy { background: #44444422; color: #64748b; border: 1px solid #33333366; cursor: default; }
+.vpnOn:hover  { opacity: 0.8; }
+.vpnOff:hover { opacity: 0.8; }
+
+.activeBadge {
   background: #6366f122;
+  margin-left: 8px;
   color: #6366f1;
   font-size: 12px;
   font-weight: 600;

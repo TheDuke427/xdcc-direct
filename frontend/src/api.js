@@ -27,4 +27,6 @@ export const api = {
   listChannels:     () => request('GET', '/index/channels'),
   addChannel:       (data) => request('POST', '/index/channels', data),
   removeChannel:    (id) => request('DELETE', `/index/channels/${id}`),
+  getVpnStatus:     () => request('GET', '/vpn/status'),
+  setVpnStatus:     (status) => request('PUT', '/vpn/status', { status }),
 }

@@ -7,6 +7,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -20,7 +21,8 @@ from irc_client import IRCClient
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DOWNLOAD_DIR   = os.environ.get("DOWNLOAD_DIR", "./downloads")
+DOWNLOAD_DIR      = os.environ.get("DOWNLOAD_DIR", "./downloads")
+GLUETUN_CONTROL   = os.environ.get("GLUETUN_CONTROL", "http://localhost:9000")
 MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", "3"))
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -191,6 +193,39 @@ async def add_channel(req: AddChannelRequest):
 @app.delete("/api/index/channels/{channel_id}", status_code=204)
 async def remove_channel(channel_id: int):
     await indexer.remove_channel(channel_id)
+
+
+# ------------------------------------------------------------------
+# VPN control (proxies to gluetun HTTP control server)
+# ------------------------------------------------------------------
+
+@app.get("/api/vpn/status")
+async def get_vpn_status():
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            r = await client.get(f"{GLUETUN_CONTROL}/v1/vpn/status")
+            return r.json()
+        except Exception as e:
+            raise HTTPException(502, f"VPN control unreachable: {e}")
+
+
+class VpnStatusRequest(BaseModel):
+    status: str  # "running" or "stopped"
+
+
+@app.put("/api/vpn/status")
+async def set_vpn_status(req: VpnStatusRequest):
+    if req.status not in ("running", "stopped"):
+        raise HTTPException(400, "status must be 'running' or 'stopped'")
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            r = await client.put(
+                f"{GLUETUN_CONTROL}/v1/vpn/status",
+                json={"status": req.status},
+            )
+            return r.json()
+        except Exception as e:
+            raise HTTPException(502, f"VPN control unreachable: {e}")
 
 
 # ------------------------------------------------------------------
