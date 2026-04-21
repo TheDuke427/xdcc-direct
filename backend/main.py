@@ -8,6 +8,7 @@ import os
 from contextlib import asynccontextmanager
 
 import httpx
+from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -112,22 +113,14 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
-@app.get("/api/search")
-async def search_xdcc(q: str = ""):
-    if len(q.strip()) < 2:
-        return []
+async def _search_sunxdcc(client: httpx.AsyncClient, q: str) -> list[dict]:
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            r = await client.get(
-                "https://sunxdcc.com/deliver.php",
-                params={"sterm": q, "page": 0},
-            )
+        r = await client.get("https://sunxdcc.com/deliver.php", params={"sterm": q, "page": 0})
         r.raise_for_status()
         data = r.json()
     except Exception as e:
-        raise HTTPException(502, f"sunxdcc.com search failed: {e}")
-
-    # API returns parallel arrays; zip by index
+        logger.warning("sunxdcc.com search failed: %s", e)
+        return []
     network = data.get("network", [])
     channel = data.get("channel", [])
     bot     = data.get("bot", [])
@@ -136,7 +129,6 @@ async def search_xdcc(q: str = ""):
     packnum = data.get("packnum", [])
     gets    = data.get("gets", [])
     n = min(len(network), len(bot), len(fname), len(packnum))
-
     return [
         {
             "bot": bot[i],
@@ -147,9 +139,67 @@ async def search_xdcc(q: str = ""):
             "port": 6667,
             "channel": channel[i] if i < len(channel) else "",
             "gets": gets[i] if i < len(gets) else "",
+            "source": "sunxdcc",
         }
         for i in range(min(n, 100))
     ]
+
+
+async def _search_xdcceu(client: httpx.AsyncClient, q: str) -> list[dict]:
+    try:
+        r = await client.get(
+            "https://www.xdcc.eu/search.php",
+            params={"searchkey": q},
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        r.raise_for_status()
+    except Exception as e:
+        logger.warning("xdcc.eu search failed: %s", e)
+        return []
+    results = []
+    try:
+        soup = BeautifulSoup(r.text, "html.parser")
+        for tr in soup.select("#table tbody tr"):
+            tds = tr.find_all("td")
+            if len(tds) < 6:
+                continue
+            results.append({
+                "bot": tds[2].get_text(strip=True),
+                "pack": tds[3].get_text(strip=True),
+                "filename": tds[5].get_text(strip=True),
+                "size": tds[4].get_text(strip=True),
+                "server": tds[0].get_text(strip=True),
+                "port": 6667,
+                "channel": tds[1].get_text(strip=True),
+                "gets": "",
+                "source": "xdcc.eu",
+            })
+    except Exception as e:
+        logger.warning("xdcc.eu parse failed: %s", e)
+    return results[:100]
+
+
+@app.get("/api/search")
+async def search_xdcc(q: str = ""):
+    if len(q.strip()) < 2:
+        return []
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        sun, eu = await asyncio.gather(
+            _search_sunxdcc(client, q),
+            _search_xdcceu(client, q),
+        )
+    if not sun and not eu:
+        raise HTTPException(502, "All search sources failed")
+
+    # Merge, deduplicate by (bot, pack), xdcc.eu first (fresher index)
+    seen: set[tuple] = set()
+    merged = []
+    for r in eu + sun:
+        key = (r["bot"].lower(), r["pack"].lower())
+        if key not in seen:
+            seen.add(key)
+            merged.append(r)
+    return merged[:200]
 
 
 @app.get("/api/files")
