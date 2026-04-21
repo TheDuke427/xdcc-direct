@@ -241,16 +241,23 @@ class IRCClient:
     async def _collect_list(self) -> list[dict]:
         await self._send(f"PRIVMSG {self.bot} :xdcc list")
         packs = []
+        loop = asyncio.get_event_loop()
+        # Idle deadline tracks silence from the bot, not from any IRC line.
+        # Server PINGs must not reset this timer.
+        idle_deadline = loop.time() + 5.0
         gen = self._lines()
         while True:
+            remaining = idle_deadline - loop.time()
+            if remaining <= 0:
+                break
             try:
-                line = await asyncio.wait_for(gen.__anext__(), timeout=3.0)
+                line = await asyncio.wait_for(gen.__anext__(), timeout=remaining)
             except (asyncio.TimeoutError, StopAsyncIteration):
                 break
             if line.startswith("PING"):
                 token = line.split(":", 1)[1] if ":" in line else line.split()[1]
                 await self._send(f"PONG :{token}")
-                continue
+                continue  # intentionally does NOT reset idle_deadline
             parts = line.split()
             if len(parts) < 2:
                 continue
@@ -266,6 +273,7 @@ class IRCClient:
                         "size": m.group(3),
                         "filename": m.group(4).strip(),
                     })
+                    idle_deadline = loop.time() + 3.0  # reset only on bot pack entries
         return packs
 
     async def _disconnect(self):
