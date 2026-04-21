@@ -2,6 +2,7 @@
 Async IRC client with XDCC/DCC SEND support.
 """
 import asyncio
+import ipaddress
 import re
 import struct
 import socket
@@ -10,7 +11,27 @@ import os
 import time
 from collections import deque
 import aiofiles
+import httpx
 from typing import Callable, Awaitable
+
+
+async def _resolve(hostname: str) -> str:
+    """Resolve hostname via Cloudflare DoH (port 443, works through gluetun VPN)."""
+    try:
+        ipaddress.ip_address(hostname)
+        return hostname
+    except ValueError:
+        pass
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.get(
+            "https://cloudflare-dns.com/dns-query",
+            params={"name": hostname, "type": "A"},
+            headers={"Accept": "application/dns-json"},
+        )
+        for rec in r.json().get("Answer", []):
+            if rec.get("type") == 1:
+                return rec["data"]
+    raise RuntimeError(f"DNS-over-HTTPS: could not resolve {hostname}")
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +98,18 @@ class IRCClient:
 
     async def _connect(self):
         logger.info("Connecting to %s:%d", self.server, self.port)
+        host = await _resolve(self.server)
+        if host != self.server:
+            logger.info("Resolved %s -> %s", self.server, host)
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
             self._reader, self._writer = await asyncio.open_connection(
-                self.server, self.port, ssl=ctx
+                host, self.port, ssl=ctx
             )
         else:
             self._reader, self._writer = await asyncio.open_connection(
-                self.server, self.port
+                host, self.port
             )
 
     async def _register(self):
