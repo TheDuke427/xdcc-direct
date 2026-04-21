@@ -1,0 +1,73 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: #0d1020;
+  border-bottom: 1px solid #2d3148;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #6366f1;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.activeBadge {
+  margin-left: auto;
+  background: #6366f122;
+  color: #6366f1;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.main {
+  flex: 1;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #2d3148;
+  padding-bottom: 0;
+}
+
+.tab, .tabActive {
+  background: none;
+  color: #64748b;
+  border-radius: 0;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabActive {
+  color: #c7d2fe;
+  border-bottom-color: #6366f1;
+}
+
+.panel {
+  min-height: 200px;
+}
