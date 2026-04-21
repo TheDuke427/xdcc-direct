@@ -57,6 +57,7 @@ class IRCClient:
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
         self._registered = False
+        self._buf = b""
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -135,16 +136,23 @@ class IRCClient:
                 token = line.split(":", 1)[1] if ":" in line else line.split()[1]
                 await self._send(f"PONG :{token}")
 
-            # Surface NOTICE/PRIVMSG from the bot so the UI can show queue status
-            if self.message_cb and ("NOTICE" in line or "PRIVMSG" in line):
+            # Surface bot messages and server errors to the UI
+            if self.message_cb:
                 parts = line.split()
                 if len(parts) >= 4:
                     sender_nick = parts[0].lstrip(":").split("!")[0]
-                    if sender_nick.lower() == self.bot.lower():
+                    cmd = parts[1] if len(parts) > 1 else ""
+                    # NOTICE/PRIVMSG from the bot (queue position, send confirmation, etc.)
+                    if cmd in ("NOTICE", "PRIVMSG") and sender_nick.lower() == self.bot.lower():
                         text = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else ""
                         if text:
                             logger.info("Bot message: %s", text)
                             await self.message_cb(text)
+                    # 401 = No such nick, 403 = No such channel
+                    elif cmd in ("401", "403"):
+                        text = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else line
+                        logger.info("Server error: %s", text)
+                        await self.message_cb(f"Server: {text}")
 
             if "DCC SEND" in line:
                 m = DCC_SEND_RE.search(line)
@@ -263,12 +271,11 @@ class IRCClient:
         await self._writer.drain()
 
     async def _lines(self):
-        buf = b""
         while True:
+            while b"\r\n" in self._buf:
+                line, self._buf = self._buf.split(b"\r\n", 1)
+                yield line.decode(errors="replace")
             data = await self._reader.read(4096)
             if not data:
                 return
-            buf += data
-            while b"\r\n" in buf:
-                line, buf = buf.split(b"\r\n", 1)
-                yield line.decode(errors="replace")
+            self._buf += data
