@@ -1,0 +1,119 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.searchBar {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  font-size: 14px;
+}
+
+.btn {
+  background: #6366f1;
+  color: #fff;
+  padding: 8px 20px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.hint, .empty {
+  color: #4a5070;
+  font-size: 14px;
+  text-align: center;
+  padding: 32px 0;
+}
+
+.error {
+  color: #f87171;
+  font-size: 13px;
+}
+
+.count {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  color: #4a5070;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2d3148;
+}
+
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1a1f35;
+  vertical-align: middle;
+}
+
+.table tr:hover td {
+  background: #161924;
+}
+
+.filename {
+  font-family: monospace;
+  color: #c7d2fe;
+  word-break: break-all;
+  max-width: 340px;
+}
+
+.size {
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.bot {
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.pack {
+  color: #6366f1;
+  font-family: monospace;
+}
+
+.channel {
+  color: #64748b;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.getBtn {
+  background: #6366f122;
+  color: #6366f1;
+  border: 1px solid #6366f144;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.getBtn:hover:not(:disabled) {
+  background: #6366f133;
+}
+
+.getBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

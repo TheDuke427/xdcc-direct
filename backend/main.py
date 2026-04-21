@@ -7,6 +7,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -109,6 +110,32 @@ async def delete_download(job_id: str):
 async def cancel_download(job_id: str):
     if not manager.cancel_job(job_id):
         raise HTTPException(404, "Job not found or already finished")
+
+
+@app.get("/api/search")
+async def search_xdcc(q: str = ""):
+    if len(q.strip()) < 2:
+        return []
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        bots_r, search_r = await asyncio.gather(
+            client.get("https://nibl.co/api/bots"),
+            client.get("https://nibl.co/api/search", params={"query": q}),
+        )
+    bots_by_id = {b["id"]: b for b in bots_r.json().get("bots", [])}
+    results = []
+    for r in search_r.json().get("results", [])[:100]:
+        bot = bots_by_id.get(r.get("botId"), {})
+        results.append({
+            "bot": r.get("botNickname", ""),
+            "pack": f"#{r.get('packNumber', '')}",
+            "filename": r.get("name", ""),
+            "size": r.get("size", ""),
+            "server": "irc.rizon.net",
+            "port": 6667,
+            "channel": bot.get("channel", ""),
+            "gets": r.get("gets", 0),
+        })
+    return results
 
 
 @app.get("/api/files")

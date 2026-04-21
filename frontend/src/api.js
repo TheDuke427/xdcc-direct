@@ -19,6 +19,7 @@ export const api = {
   addDownload: (data) => request('POST', '/downloads', data),
   cancelDownload: (id) => request('POST', `/downloads/${id}/cancel`),
   deleteDownload: (id) => request('DELETE', `/downloads/${id}`),
+  searchXdcc: (q) => request('GET', `/search?q=${encodeURIComponent(q)}`),
   listFiles: () => request('GET', '/files'),
   fileUrl: (name) => `${BASE}/files/${encodeURIComponent(name)}`,
 }

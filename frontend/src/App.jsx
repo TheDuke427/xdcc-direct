@@ -2,15 +2,15 @@ import { useState, useCallback } from 'react'
 import AddDownloadForm from './components/AddDownloadForm'
 import DownloadQueue from './components/DownloadQueue'
 import FileLibrary from './components/FileLibrary'
+import SearchTab from './components/SearchTab'
 import { useWebSocket } from './useWebSocket'
 import { api } from './api'
 import styles from './App.module.css'
 
 export default function App() {
   const [jobs, setJobs] = useState([])
-  const [tab, setTab] = useState('queue')
+  const [tab, setTab] = useState('search')
 
-  // Merge incoming WS job update into jobs list
   const handleWsMessage = useCallback((job) => {
     setJobs((prev) => {
       const idx = prev.findIndex((j) => j.id === job.id)
@@ -47,9 +47,13 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
-        <AddDownloadForm onAdded={handleAdded} />
-
         <div className={styles.tabs}>
+          <button
+            className={tab === 'search' ? styles.tabActive : styles.tab}
+            onClick={() => setTab('search')}
+          >
+            Search
+          </button>
           <button
             className={tab === 'queue' ? styles.tabActive : styles.tab}
             onClick={() => setTab('queue')}
@@ -65,8 +69,14 @@ export default function App() {
         </div>
 
         <div className={styles.panel}>
+          {tab === 'search' && (
+            <SearchTab onDownloaded={() => setTab('queue')} />
+          )}
           {tab === 'queue' && (
-            <DownloadQueue jobs={jobs} onUpdate={refresh} />
+            <>
+              <AddDownloadForm onAdded={handleAdded} />
+              <DownloadQueue jobs={jobs} onUpdate={refresh} />
+            </>
           )}
           {tab === 'files' && <FileLibrary />}
         </div>
