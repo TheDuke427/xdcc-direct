@@ -13,8 +13,9 @@ export default function App() {
   const [tab, setTab] = useState('search')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState(null)
-  const [vpn, setVpn] = useState(null)      // null | 'running' | 'stopped'
+  const [vpn, setVpn] = useState(null)      // null | 'running' | 'stopped' | 'error'
   const [vpnBusy, setVpnBusy] = useState(false)
+  const [vpnErr, setVpnErr] = useState('')
 
   const handleWsMessage = useCallback((job) => {
     setJobs((prev) => {
@@ -29,30 +30,32 @@ export default function App() {
   useWebSocket(handleWsMessage)
 
   useEffect(() => {
-    api.getVpnStatus().then(d => setVpn(d.status)).catch(() => setVpn('unknown'))
-    const t = setInterval(() => {
-      api.getVpnStatus().then(d => setVpn(d.status)).catch(() => {})
-    }, 10000)
+    const fetchVpn = () =>
+      api.getVpnStatus()
+        .then(d => { setVpn(d.status); setVpnErr('') })
+        .catch(e => { setVpn('error'); setVpnErr(e.message) })
+    fetchVpn()
+    const t = setInterval(fetchVpn, 10000)
     return () => clearInterval(t)
   }, [])
 
   async function toggleVpn() {
-    if (vpnBusy) return
+    if (vpnBusy || vpn === 'error') return
     setVpnBusy(true)
+    setVpnErr('')
     try {
       const next = vpn === 'running' ? 'stopped' : 'running'
       await api.setVpnStatus(next)
       setVpn(next)
-      // Poll until gluetun confirms the transition
       for (let i = 0; i < 20; i++) {
         await new Promise(r => setTimeout(r, 1500))
         const d = await api.getVpnStatus().catch(() => null)
-        if (d?.status === next) break
+        if (d?.status === next) { setVpn(next); break }
       }
       const d = await api.getVpnStatus().catch(() => null)
       if (d) setVpn(d.status)
     } catch (e) {
-      console.error('VPN toggle failed', e)
+      setVpnErr(e.message)
     } finally {
       setVpnBusy(false)
     }
@@ -78,14 +81,21 @@ export default function App() {
         <span className={styles.subtitle}>Download Manager</span>
         <button
           className={
-            vpnBusy ? styles.vpnBusy :
-            vpn === 'running' ? styles.vpnOn : styles.vpnOff
+            vpnBusy          ? styles.vpnBusy  :
+            vpn === 'error'  ? styles.vpnError :
+            vpn === 'running'? styles.vpnOn    : styles.vpnOff
           }
           onClick={toggleVpn}
-          disabled={vpnBusy || vpn === null}
-          title={vpn === 'running' ? 'VPN active — click to disable' : 'VPN off — click to enable'}
+          disabled={vpnBusy || vpn === null || vpn === 'error'}
+          title={
+            vpn === 'error'   ? `VPN error: ${vpnErr}` :
+            vpn === 'running' ? 'VPN active — click to disable' :
+                                'VPN off — click to enable'
+          }
         >
-          {vpnBusy ? '…' : vpn === 'running' ? '⬤ VPN' : '◯ Direct'}
+          {vpnBusy           ? '…'         :
+           vpn === 'error'   ? '⚠ VPN'     :
+           vpn === 'running' ? '⬤ VPN'     : '◯ Direct'}
         </button>
         {active > 0 && (
           <span className={styles.activeBadge}>{active} active</span>
