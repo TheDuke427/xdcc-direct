@@ -5,12 +5,9 @@ import asyncio
 import json
 import logging
 import os
-import re
 from contextlib import asynccontextmanager
 
-import functools
-
-import cloudscraper
+import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -115,58 +112,44 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
-def _ixirc_search_sync(q: str) -> dict:
-    scraper = cloudscraper.create_scraper()
-    r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
-    if r.status_code == 200 and b"/lander" in r.content:
-        m = re.search(r'href="(/lander[^"]*)"', r.text)
-        if m:
-            lander_url = f"https://ixirc.com{m.group(1)}"
-            logger.info("ixirc lander detected, visiting %s", lander_url)
-            scraper.get(lander_url, timeout=15)
-        r = scraper.get("https://ixirc.com/api/", params={"q": q}, timeout=15)
-    logger.info("ixirc status=%d body_preview=%r", r.status_code, r.text[:300])
-    r.raise_for_status()
-    return r.json()
-
-
 @app.get("/api/search")
 async def search_xdcc(q: str = ""):
     if len(q.strip()) < 2:
         return []
-    loop = asyncio.get_event_loop()
     try:
-        data = await loop.run_in_executor(None, functools.partial(_ixirc_search_sync, q))
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(
+                "https://sunxdcc.com/deliver.php",
+                params={"sterm": q, "page": 0},
+            )
+        r.raise_for_status()
+        data = r.json()
     except Exception as e:
-        raise HTTPException(502, f"ixirc.com search failed: {e}")
+        raise HTTPException(502, f"sunxdcc.com search failed: {e}")
 
-    networks = {n["nid"]: n for n in data.get("networks", [])}
-    channels = {c["cid"]: c for c in data.get("channels", [])}
+    # API returns parallel arrays; zip by index
+    network = data.get("network", [])
+    channel = data.get("channel", [])
+    bot     = data.get("bot", [])
+    fsize   = data.get("fsize", [])
+    fname   = data.get("fname", [])
+    packnum = data.get("packnum", [])
+    gets    = data.get("gets", [])
+    n = min(len(network), len(bot), len(fname), len(packnum))
 
-    def fmt_size(b):
-        if not b:
-            return ""
-        if b >= 1_073_741_824:
-            return f"{b / 1_073_741_824:.2f} GB"
-        if b >= 1_048_576:
-            return f"{b / 1_048_576:.1f} MB"
-        return f"{b / 1024:.1f} KB"
-
-    results = []
-    for pack in data.get("xdcc", [])[:100]:
-        ch = channels.get(pack.get("cid"), {})
-        net = networks.get(pack.get("nid"), {})
-        results.append({
-            "bot": pack.get("uname", ""),
-            "pack": f"#{pack.get('packnum', '')}",
-            "filename": pack.get("fname", ""),
-            "size": fmt_size(pack.get("fsize", 0)),
-            "server": net.get("serverName", ""),
+    return [
+        {
+            "bot": bot[i],
+            "pack": packnum[i],
+            "filename": fname[i],
+            "size": fsize[i] if i < len(fsize) else "",
+            "server": network[i],
             "port": 6667,
-            "channel": ch.get("name", ""),
-            "gets": pack.get("gets", 0),
-        })
-    return results
+            "channel": channel[i] if i < len(channel) else "",
+            "gets": gets[i] if i < len(gets) else "",
+        }
+        for i in range(min(n, 100))
+    ]
 
 
 @app.get("/api/files")
