@@ -18,7 +18,7 @@ export default function PackListModal({ botInfo, onClose, onDownloaded }) {
   async function handleGet(pack) {
     setGetting(pack.pack)
     try {
-      await api.addDownload({ ...botInfo, pack: pack.pack })
+      await api.addDownload({ ...botInfo, bot: pack.bot ?? botInfo.bot, pack: pack.pack })
       onDownloaded()
       onClose()
     } catch (e) {
@@ -49,6 +49,7 @@ export default function PackListModal({ botInfo, onClose, onDownloaded }) {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th>Bot</th>
                   <th>#</th>
                   <th>Filename</th>
                   <th>Size</th>
@@ -58,7 +59,8 @@ export default function PackListModal({ botInfo, onClose, onDownloaded }) {
               </thead>
               <tbody>
                 {packs.map((p) => (
-                  <tr key={p.pack}>
+                  <tr key={`${p.bot}|${p.pack}`}>
+                    <td className={styles.bot}>{p.bot}</td>
                     <td className={styles.pack}>{p.pack}</td>
                     <td className={styles.filename}>{p.filename}</td>
                     <td className={styles.size}>{p.size}</td>

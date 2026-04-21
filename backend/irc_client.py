@@ -265,12 +265,13 @@ class IRCClient:
                 continue
             sender = parts[0].lstrip(":").split("!")[0]
             cmd = parts[1]
-            if cmd in ("NOTICE", "PRIVMSG") and sender.lower() == self.bot.lower():
+            if cmd in ("NOTICE", "PRIVMSG"):
                 text = _strip_colors(line.split(":", 2)[-1].strip() if line.count(":") >= 2 else "")
-                idle_deadline = loop.time() + 3.0
                 m = PACK_LIST_RE.search(text)
                 if m:
+                    idle_deadline = loop.time() + 3.0
                     packs.append({
+                        "bot": sender,
                         "pack": f"#{m.group(1)}",
                         "gets": m.group(2),
                         "size": m.group(3),

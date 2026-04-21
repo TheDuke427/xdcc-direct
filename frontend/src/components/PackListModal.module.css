@@ -105,6 +105,7 @@
 
 .table tr:hover td { background: #252535; }
 
+.bot { color: #94a3b8; white-space: nowrap; font-size: 0.78rem; }
 .pack { color: #7c6af5; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .filename { word-break: break-all; }
 .size { white-space: nowrap; color: #aaa; }
