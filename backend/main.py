@@ -78,7 +78,7 @@ def list_downloads():
 
 
 @app.post("/api/downloads", status_code=201)
-def add_download(req: AddDownloadRequest):
+async def add_download(req: AddDownloadRequest):
     job = manager.add_job(
         server=req.server,
         port=req.port,
@@ -100,13 +100,13 @@ def get_download(job_id: str):
 
 
 @app.delete("/api/downloads/{job_id}", status_code=204)
-def delete_download(job_id: str):
+async def delete_download(job_id: str):
     if not manager.delete_job(job_id):
         raise HTTPException(404, "Job not found")
 
 
 @app.post("/api/downloads/{job_id}/cancel", status_code=204)
-def cancel_download(job_id: str):
+async def cancel_download(job_id: str):
     if not manager.cancel_job(job_id):
         raise HTTPException(404, "Job not found or already finished")
 
