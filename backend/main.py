@@ -161,17 +161,17 @@ async def _search_xdcceu(client: httpx.AsyncClient, q: str) -> list[dict]:
         soup = BeautifulSoup(r.text, "html.parser")
         for tr in soup.select("#table tbody tr"):
             tds = tr.find_all("td")
-            if len(tds) < 6:
+            if len(tds) < 7:
                 continue
             results.append({
                 "bot": tds[2].get_text(strip=True),
                 "pack": tds[3].get_text(strip=True),
-                "filename": tds[5].get_text(strip=True),
-                "size": tds[4].get_text(strip=True),
+                "filename": tds[6].get_text(strip=True),
+                "size": tds[5].get_text(strip=True),
                 "server": tds[0].get_text(strip=True),
                 "port": 6667,
                 "channel": tds[1].get_text(strip=True),
-                "gets": "",
+                "gets": tds[4].get_text(strip=True),
                 "source": "xdcc.eu",
             })
     except Exception as e:
