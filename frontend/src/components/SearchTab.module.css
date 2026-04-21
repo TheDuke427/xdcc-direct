@@ -117,3 +117,24 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.listBtn {
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.listBtn:hover {
+  color: #ccc;
+  border-color: #666;
+}

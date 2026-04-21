@@ -15,6 +15,14 @@ import httpx
 from typing import Callable, Awaitable
 
 
+COLOR_RE = re.compile(r'\x03(?:\d{1,2}(?:,\d{1,2})?)?|[\x02\x0f\x16\x1d\x1e\x1f]')
+PACK_LIST_RE = re.compile(r'#(\d+)\s+(\d+)x?\s+\[([^\]]+)\]\s+(.+)', re.IGNORECASE)
+
+
+def _strip_colors(s: str) -> str:
+    return COLOR_RE.sub('', s)
+
+
 async def _resolve(hostname: str) -> str:
     """Resolve hostname via Cloudflare DoH (port 443, works through gluetun VPN)."""
     try:
@@ -176,6 +184,7 @@ class IRCClient:
                     if cmd in ("NOTICE", "PRIVMSG") and sender_nick.lower() == self.bot.lower():
                         text = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else ""
                         if text:
+                            text = _strip_colors(text)
                             logger.info("Bot message: %s", text)
                             await self.message_cb(text)
                     # 401 = No such nick, 403 = No such channel
@@ -217,6 +226,44 @@ class IRCClient:
                     return await self._dcc_download(filename, ip, port, filesize, offset)
 
         raise RuntimeError("Connection closed before DCC SEND received")
+
+    async def run_list(self) -> list[dict]:
+        """Connect, request xdcc list, return parsed pack entries."""
+        await self._connect()
+        await self._register()
+        packs = await self._collect_list()
+        await self._disconnect()
+        return packs
+
+    async def _collect_list(self) -> list[dict]:
+        await self._send(f"PRIVMSG {self.bot} :xdcc list")
+        packs = []
+        gen = self._lines()
+        while True:
+            try:
+                line = await asyncio.wait_for(gen.__anext__(), timeout=3.0)
+            except (asyncio.TimeoutError, StopAsyncIteration):
+                break
+            if line.startswith("PING"):
+                token = line.split(":", 1)[1] if ":" in line else line.split()[1]
+                await self._send(f"PONG :{token}")
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            sender = parts[0].lstrip(":").split("!")[0]
+            cmd = parts[1]
+            if cmd in ("NOTICE", "PRIVMSG") and sender.lower() == self.bot.lower():
+                text = _strip_colors(line.split(":", 2)[-1].strip() if line.count(":") >= 2 else "")
+                m = PACK_LIST_RE.search(text)
+                if m:
+                    packs.append({
+                        "pack": f"#{m.group(1)}",
+                        "gets": m.group(2),
+                        "size": m.group(3),
+                        "filename": m.group(4).strip(),
+                    })
+        return packs
 
     async def _disconnect(self):
         if self._writer:

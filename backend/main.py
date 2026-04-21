@@ -70,6 +70,15 @@ class AddDownloadRequest(BaseModel):
     pack: str = Field(..., description="Pack number, e.g. #123", examples=["#123"])
 
 
+class PackListRequest(BaseModel):
+    server: str
+    port: int = Field(6667, ge=1, le=65535)
+    ssl: bool = False
+    nickname: str = Field("xdccuser", min_length=1, max_length=30)
+    channel: str = ""
+    bot: str
+
+
 # ------------------------------------------------------------------
 # REST endpoints
 # ------------------------------------------------------------------
@@ -111,6 +120,23 @@ async def delete_download(job_id: str):
 async def cancel_download(job_id: str):
     if not manager.cancel_job(job_id):
         raise HTTPException(404, "Job not found or already finished")
+
+
+@app.post("/api/packlist")
+async def fetch_pack_list(req: PackListRequest):
+    async def noop(_): pass
+    client = IRCClient(
+        server=req.server, port=req.port, ssl=req.ssl,
+        nickname=req.nickname, channel=req.channel, bot=req.bot,
+        pack="", download_dir="", progress_cb=noop,
+    )
+    try:
+        packs = await asyncio.wait_for(client.run_list(), timeout=60)
+    except asyncio.TimeoutError:
+        raise HTTPException(504, "Timed out waiting for pack list")
+    except Exception as e:
+        raise HTTPException(502, str(e))
+    return packs
 
 
 # xdcc.eu returns network names, not server hostnames

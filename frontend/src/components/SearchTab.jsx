@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { api } from '../api'
 import styles from './SearchTab.module.css'
+import PackListModal from './PackListModal'
 
 export default function SearchTab({ onDownloaded, query, onQueryChange, results, onResultsChange }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [getting, setGetting] = useState(null)
+  const [packListBot, setPackListBot] = useState(null)
 
   async function handleSearch(e) {
     e?.preventDefault()
@@ -83,19 +85,26 @@ export default function SearchTab({ onDownloaded, query, onQueryChange, results,
             <tbody>
               {results.map((r, i) => {
                 const key = `${r.bot}|${r.pack}`
+                const botInfo = { server: r.server, port: r.port, ssl: false, nickname: 'xdccuser', channel: r.channel, bot: r.bot }
                 return (
                   <tr key={i}>
                     <td className={styles.filename}>{r.filename}</td>
                     <td className={styles.size}>{r.size || '—'}</td>
                     <td className={styles.bot}>{r.bot} <span className={styles.pack}>{r.pack}</span></td>
                     <td className={styles.channel}>{r.channel || '—'}</td>
-                    <td>
+                    <td className={styles.actions}>
                       <button
                         className={styles.getBtn}
                         disabled={getting !== null}
                         onClick={() => handleGet(r)}
                       >
                         {getting === key ? '…' : 'Get'}
+                      </button>
+                      <button
+                        className={styles.listBtn}
+                        onClick={() => setPackListBot(botInfo)}
+                      >
+                        List
                       </button>
                     </td>
                   </tr>
@@ -105,6 +114,13 @@ export default function SearchTab({ onDownloaded, query, onQueryChange, results,
           </table>
         </div>
       )}
+    {packListBot && (
+      <PackListModal
+        botInfo={packListBot}
+        onClose={() => setPackListBot(null)}
+        onDownloaded={onDownloaded}
+      />
+    )}
     </div>
   )
 }
