@@ -112,7 +112,14 @@ class IRCClient:
 
         if self.channel:
             await self._send(f"JOIN {self.channel}")
-            await asyncio.sleep(1.5)
+            # Wait for 366 (End of /NAMES) — confirms server has processed our JOIN
+            async for line in self._lines():
+                logger.debug("IRC << %s", line)
+                if line.startswith("PING"):
+                    token = line.split(":", 1)[1] if ":" in line else line.split()[1]
+                    await self._send(f"PONG :{token}")
+                if re.search(r"^:\S+ 366 ", line):
+                    break
 
         logger.info("Sending XDCC request to %s: xdcc send %s", self.bot, self.pack)
         await self._send(f"PRIVMSG {self.bot} :xdcc send {self.pack}")
