@@ -96,6 +96,10 @@ class IRCClient:
         """Connect, download, disconnect. Returns the saved file path."""
         await self._connect()
         await self._register()
+        if self.channel:
+            await self._join(self.channel)
+        logger.info("Sending XDCC request to %s: xdcc send %s", self.bot, self.pack)
+        await self._send(f"PRIVMSG {self.bot} :xdcc send {self.pack}")
         file_path = await self._wait_for_dcc()
         await self._disconnect()
         return file_path
@@ -143,25 +147,22 @@ class IRCClient:
                 self._registered = True
                 break
 
-        if self.channel:
-            logger.info("Joining channel %s", self.channel)
-            await self._send(f"JOIN {self.channel}")
-            # Wait for 366 (End of /NAMES) — confirms server has processed our JOIN
-            async for line in self._lines():
-                logger.debug("IRC << %s", line)
-                if line.startswith("PING"):
-                    token = line.split(":", 1)[1] if ":" in line else line.split()[1]
-                    await self._send(f"PONG :{token}")
-                if re.search(r"^:\S+ 366 ", line):
-                    break
-                # Join error numerics: key required, invite only, banned, full, etc.
-                m = re.search(r"^:\S+ (47[0-9]|405|403) ", line)
-                if m:
-                    reason = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else line
-                    raise RuntimeError(f"Cannot join {self.channel}: {reason}")
-
-        logger.info("Sending XDCC request to %s: xdcc send %s", self.bot, self.pack)
-        await self._send(f"PRIVMSG {self.bot} :xdcc send {self.pack}")
+    async def _join(self, channel: str):
+        logger.info("Joining channel %s", channel)
+        await self._send(f"JOIN {channel}")
+        # Wait for 366 (End of /NAMES) — confirms server has processed our JOIN
+        async for line in self._lines():
+            logger.debug("IRC << %s", line)
+            if line.startswith("PING"):
+                token = line.split(":", 1)[1] if ":" in line else line.split()[1]
+                await self._send(f"PONG :{token}")
+            if re.search(r"^:\S+ 366 ", line):
+                break
+            # Join error numerics: key required, invite only, banned, full, etc.
+            m = re.search(r"^:\S+ (47[0-9]|405|403) ", line)
+            if m:
+                reason = line.split(":", 2)[-1].strip() if line.count(":") >= 2 else line
+                raise RuntimeError(f"Cannot join {channel}: {reason}")
 
     async def _wait_for_dcc(self) -> str:
         """Read IRC lines until we get a DCC SEND CTCP, then download.
@@ -231,6 +232,8 @@ class IRCClient:
         """Connect, request xdcc list, return parsed pack entries."""
         await self._connect()
         await self._register()
+        if self.channel:
+            await self._join(self.channel)
         packs = await self._collect_list()
         await self._disconnect()
         return packs
