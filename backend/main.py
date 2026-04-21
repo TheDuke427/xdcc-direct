@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DOWNLOAD_DIR      = os.environ.get("DOWNLOAD_DIR", "./downloads")
-GLUETUN_CONTROL   = os.environ.get("GLUETUN_CONTROL", "http://localhost:9000")
+GLUETUN_CONTROL   = os.environ.get("GLUETUN_CONTROL", "http://localhost:8000")
 MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", "3"))
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
