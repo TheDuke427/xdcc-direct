@@ -113,6 +113,35 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
+# xdcc.eu returns network names, not server hostnames
+_NETWORK_SERVERS: dict[str, str] = {
+    "abjects":       "irc.abjects.net",
+    "coreirc":       "irc.coreirc.net",
+    "irchighway":    "irc.irchighway.net",
+    "rizon":         "irc.rizon.net",
+    "scenep2p":      "irc.scenep2p.net",
+    "undernet":      "irc.undernet.org",
+    "xertion":       "irc.xertion.org",
+    "abandoned-irc": "irc.abandoned-irc.net",
+    "relaxedirc":    "irc.relaxedirc.net",
+    "openjoke":      "irc.openjoke.net",
+    "devilirc":      "irc.devilirc.net",
+    "irc-files":     "irc.irc-files.net",
+}
+
+
+def _resolve_server(network: str) -> str:
+    """Map a network name to a connectable server hostname."""
+    key = network.lower().strip()
+    if key in _NETWORK_SERVERS:
+        return _NETWORK_SERVERS[key]
+    # If it already looks like a hostname, use as-is
+    if "." in key:
+        return key
+    # Best-effort fallback
+    return f"irc.{key}.net"
+
+
 async def _search_sunxdcc(client: httpx.AsyncClient, q: str) -> list[dict]:
     try:
         r = await client.get("https://sunxdcc.com/deliver.php", params={"sterm": q, "page": 0})
@@ -135,7 +164,7 @@ async def _search_sunxdcc(client: httpx.AsyncClient, q: str) -> list[dict]:
             "pack": packnum[i],
             "filename": fname[i],
             "size": fsize[i] if i < len(fsize) else "",
-            "server": network[i],
+            "server": _resolve_server(network[i]),
             "port": 6667,
             "channel": channel[i] if i < len(channel) else "",
             "gets": gets[i] if i < len(gets) else "",
@@ -168,7 +197,7 @@ async def _search_xdcceu(client: httpx.AsyncClient, q: str) -> list[dict]:
                 "pack": tds[3].get_text(strip=True),
                 "filename": tds[6].get_text(strip=True),
                 "size": tds[5].get_text(strip=True),
-                "server": tds[0].get_text(strip=True),
+                "server": _resolve_server(tds[0].get_text(strip=True)),
                 "port": 6667,
                 "channel": tds[1].get_text(strip=True),
                 "gets": tds[4].get_text(strip=True),
