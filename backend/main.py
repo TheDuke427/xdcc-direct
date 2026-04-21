@@ -112,44 +112,42 @@ async def cancel_download(job_id: str):
         raise HTTPException(404, "Job not found or already finished")
 
 
-_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; xdcc-manager/1.0)"}
-
 @app.get("/api/search")
 async def search_xdcc(q: str = ""):
     if len(q.strip()) < 2:
         return []
-    async with httpx.AsyncClient(timeout=10.0, headers=_HEADERS, follow_redirects=True) as client:
-        bots_r, search_r = await asyncio.gather(
-            client.get("https://nibl.co/api/bots"),
-            client.get("https://nibl.co/api/search", params={"query": q}),
-        )
-
-    logger.info("nibl bots: status=%s body=%r", bots_r.status_code, bots_r.text[:300])
-    logger.info("nibl search: status=%s body=%r", search_r.status_code, search_r.text[:300])
-
-    bots_by_id = {}
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        r = await client.get("https://ixirc.com/api/", params={"q": q})
     try:
-        bots_by_id = {b["id"]: b for b in bots_r.json().get("bots", [])}
+        data = r.json()
     except Exception:
-        pass
+        raise HTTPException(502, f"ixirc.com returned non-JSON (status={r.status_code}): {r.text[:200]}")
 
-    try:
-        raw = search_r.json()
-    except Exception:
-        raise HTTPException(502, f"nibl.co search returned non-JSON (status={search_r.status_code}): {search_r.text[:200]}")
+    networks = {n["nid"]: n for n in data.get("networks", [])}
+    channels = {c["cid"]: c for c in data.get("channels", [])}
+
+    def fmt_size(b):
+        if not b:
+            return ""
+        if b >= 1_073_741_824:
+            return f"{b / 1_073_741_824:.2f} GB"
+        if b >= 1_048_576:
+            return f"{b / 1_048_576:.1f} MB"
+        return f"{b / 1024:.1f} KB"
 
     results = []
-    for r in raw.get("results", [])[:100]:
-        bot = bots_by_id.get(r.get("botId"), {})
+    for pack in data.get("xdcc", [])[:100]:
+        ch = channels.get(pack.get("cid"), {})
+        net = networks.get(pack.get("nid"), {})
         results.append({
-            "bot": r.get("botNickname", ""),
-            "pack": f"#{r.get('packNumber', '')}",
-            "filename": r.get("name", ""),
-            "size": r.get("size", ""),
-            "server": "irc.rizon.net",
+            "bot": pack.get("uname", ""),
+            "pack": f"#{pack.get('packnum', '')}",
+            "filename": pack.get("fname", ""),
+            "size": fmt_size(pack.get("fsize", 0)),
+            "server": net.get("serverName", ""),
             "port": 6667,
-            "channel": bot.get("channel", ""),
-            "gets": r.get("gets", 0),
+            "channel": ch.get("name", ""),
+            "gets": pack.get("gets", 0),
         })
     return results
 
