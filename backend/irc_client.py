@@ -123,15 +123,17 @@ class IRCClient:
             self._reader, self._writer = await asyncio.open_connection(
                 host, self.port
             )
+        logger.info("TCP connected to %s:%d", host, self.port)
 
     async def _register(self):
         nick = self.nickname
         nick_attempt = 0
+        logger.info("Registering as %s", nick)
         await self._send(f"NICK {nick}")
         await self._send(f"USER {nick} 0 * :{nick}")
 
         async for line in self._lines():
-            logger.debug("IRC << %s", line)
+            logger.info("IRC << %s", line)
             if line.startswith("PING"):
                 token = line.split(":", 1)[1] if ":" in line else line.split()[1]
                 await self._send(f"PONG :{token}")
