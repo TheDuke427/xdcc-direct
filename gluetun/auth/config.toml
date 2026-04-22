@@ -1,4 +1,4 @@
 [[roles]]
 name = "admin"
 auth = "none"
-routes = ["* *"]
+routes = ["GET /v1/vpn/status", "PUT /v1/vpn/status"]
