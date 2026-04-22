@@ -11,6 +11,7 @@ import os
 import time
 from collections import deque
 import aiofiles
+import httpx
 from typing import Callable, Awaitable
 
 
@@ -23,14 +24,22 @@ def _strip_colors(s: str) -> str:
 
 
 async def _resolve(hostname: str) -> str:
-    """Resolve hostname using the system resolver (gluetun manages DNS inside its namespace)."""
+    """Resolve hostname via DoH using hardcoded IP (avoids system DNS inside gluetun namespace)."""
     try:
         ipaddress.ip_address(hostname)
         return hostname
     except ValueError:
         pass
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, socket.gethostbyname, hostname)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.get(
+            "https://1.1.1.1/dns-query",
+            params={"name": hostname, "type": "A"},
+            headers={"Accept": "application/dns-json"},
+        )
+        for rec in r.json().get("Answer", []):
+            if rec.get("type") == 1:
+                return rec["data"]
+    raise RuntimeError(f"Could not resolve {hostname}")
 
 logger = logging.getLogger(__name__)
 
