@@ -1,3 +1,4 @@
 [[roles]]
 name = "admin"
+auth = "none"
 routes = ["*"]
