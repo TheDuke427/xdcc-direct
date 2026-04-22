@@ -22,7 +22,9 @@
       "Bash(git commit *)",
       "Bash(ssh mike@ubuntuserver.lan \"git pull && docker compose up --build -d backend\")",
       "Bash(git pull *)",
-      "Bash(ssh root@192.168.86.59 \"docker compose -f /opt/xdcc/docker-compose.yml exec backend python3 -c \\\\\"import urllib.request; print\\(urllib.request.urlopen\\('http://localhost:8000/v1/vpn/status'\\).read\\(\\)\\)\\\\\"\")"
+      "Bash(ssh root@192.168.86.59 \"docker compose -f /opt/xdcc/docker-compose.yml exec backend python3 -c \\\\\"import urllib.request; print\\(urllib.request.urlopen\\('http://localhost:8000/v1/vpn/status'\\).read\\(\\)\\)\\\\\"\")",
+      "Bash(ssh root@192.168.86.59 \"docker compose -f /opt/xdcc/docker-compose.yml logs gluetun 2>&1 | grep -i 'control\\\\|auth\\\\|password\\\\|user\\\\|key\\\\|8000'\")",
+      "Bash(ssh root@192.168.86.59 \"docker compose -f /opt/xdcc/docker-compose.yml exec gluetun cat /gluetun/auth/config.toml\")"
     ]
   }
 }

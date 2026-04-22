@@ -1,0 +1,11 @@
+[[roles]]
+name = "admin"
+routes = [
+  { method = "GET", path = "/v1/vpn/status" },
+  { method = "PUT", path = "/v1/vpn/status" },
+]
+
+[[users]]
+name = "xdcc"
+password = "xdcc"
+roles = ["admin"]

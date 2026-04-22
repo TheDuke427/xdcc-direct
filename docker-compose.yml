@@ -11,8 +11,8 @@ services:
       - WIREGUARD_PRIVATE_KEY=${PROTON_WG_PRIVATE_KEY}
       - SERVER_COUNTRIES=${PROTON_SERVER_COUNTRIES:-Netherlands}
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
-      - HTTP_CONTROL_SERVER_USERNAME=${GLUETUN_CONTROL_USER:-xdcc}
-      - HTTP_CONTROL_SERVER_PASSWORD=${GLUETUN_CONTROL_PASS:-xdcc}
+    volumes:
+      - ./gluetun/auth:/gluetun/auth:ro
     ports:
       - "8080:8080"
     healthcheck:
@@ -33,8 +33,6 @@ services:
       - /mnt/downloads:/app/downloads
     environment:
       - DOWNLOAD_DIR=/app/downloads
-      - GLUETUN_CONTROL_USER=${GLUETUN_CONTROL_USER:-xdcc}
-      - GLUETUN_CONTROL_PASS=${GLUETUN_CONTROL_PASS:-xdcc}
     restart: unless-stopped
 
   frontend:
