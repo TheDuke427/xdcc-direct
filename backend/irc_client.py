@@ -125,7 +125,7 @@ class IRCClient:
             self._reader, self._writer = await asyncio.open_connection(
                 host, self.port
             )
-        logger.info("TCP connected to %s:%d", host, self.port)
+        logger.info("TCP connected to %s:%d", self.server, self.port)
 
     async def _register(self):
         nick = self.nickname
