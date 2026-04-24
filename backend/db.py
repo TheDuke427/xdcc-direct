@@ -33,6 +33,7 @@ async def init_db():
                 network   TEXT    NOT NULL,
                 server    TEXT    NOT NULL,
                 port      INTEGER NOT NULL,
+                ssl       INTEGER NOT NULL DEFAULT 0,
                 channel   TEXT    NOT NULL,
                 bot       TEXT    NOT NULL,
                 pack      TEXT    NOT NULL,
@@ -42,6 +43,8 @@ async def init_db():
                 last_seen INTEGER NOT NULL,
                 UNIQUE(server, bot, pack)
             );
+
+            ALTER TABLE packs ADD COLUMN IF NOT EXISTS ssl INTEGER NOT NULL DEFAULT 0;
 
             CREATE INDEX IF NOT EXISTS idx_filename  ON packs(filename COLLATE NOCASE);
             CREATE INDEX IF NOT EXISTS idx_last_seen ON packs(last_seen);
@@ -62,12 +65,13 @@ async def bulk_upsert_packs(rows: list[dict]):
     async with aiosqlite.connect(DB_PATH) as conn:
         await conn.executemany(
             """
-            INSERT INTO packs (network, server, port, channel, bot, pack, filename, size, gets, last_seen)
-            VALUES (:network, :server, :port, :channel, :bot, :pack, :filename, :size, :gets, :now)
+            INSERT INTO packs (network, server, port, ssl, channel, bot, pack, filename, size, gets, last_seen)
+            VALUES (:network, :server, :port, :ssl, :channel, :bot, :pack, :filename, :size, :gets, :now)
             ON CONFLICT(server, bot, pack) DO UPDATE SET
                 filename  = excluded.filename,
                 size      = excluded.size,
                 gets      = excluded.gets,
+                ssl       = excluded.ssl,
                 last_seen = excluded.last_seen
             """,
             [{**r, "now": now} for r in rows],

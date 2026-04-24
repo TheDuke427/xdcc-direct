@@ -79,6 +79,8 @@ class ChannelIndexer:
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl_mod.CERT_NONE
             reader, writer = await asyncio.open_connection(host, self.port, ssl=ctx)
         else:
             reader, writer = await asyncio.open_connection(host, self.port)
@@ -186,6 +188,7 @@ class ChannelIndexer:
                             "network": self.network,
                             "server":  self.server,
                             "port":    self.port,
+                            "ssl":     self.ssl,
                             "channel": self.channel,
                             "bot":     sender,
                             "pack":    f"#{m.group(1)}",
