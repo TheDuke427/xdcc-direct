@@ -116,6 +116,8 @@ class IRCClient:
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl_mod.CERT_NONE
             self._reader, self._writer = await asyncio.open_connection(
                 host, self.port, ssl=ctx
             )
