@@ -25,7 +25,7 @@ async def init_db():
                 port    INTEGER NOT NULL DEFAULT 6667,
                 ssl     INTEGER NOT NULL DEFAULT 0,
                 channel TEXT    NOT NULL,
-                UNIQUE(server, channel)
+                UNIQUE(server, port, channel)
             );
 
             CREATE TABLE IF NOT EXISTS packs (
@@ -52,6 +52,25 @@ async def init_db():
             await conn.commit()
         except Exception:
             pass  # column already exists
+        # Widen channels unique constraint from (server, channel) to (server, port, channel)
+        row = await (await conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='channels'"
+        )).fetchone()
+        if row and 'UNIQUE(server, channel)' in row[0]:
+            await conn.executescript("""
+                ALTER TABLE channels RENAME TO channels_old;
+                CREATE TABLE channels (
+                    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                    network TEXT    NOT NULL,
+                    server  TEXT    NOT NULL,
+                    port    INTEGER NOT NULL DEFAULT 6667,
+                    ssl     INTEGER NOT NULL DEFAULT 0,
+                    channel TEXT    NOT NULL,
+                    UNIQUE(server, port, channel)
+                );
+                INSERT INTO channels SELECT * FROM channels_old;
+                DROP TABLE channels_old;
+            """)
         row = await (await conn.execute("SELECT COUNT(*) FROM channels")).fetchone()
         if row[0] == 0:
             await conn.executemany(
