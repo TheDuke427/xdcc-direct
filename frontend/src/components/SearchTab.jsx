@@ -30,7 +30,7 @@ export default function SearchTab({ onDownloaded, query, onQueryChange, results,
       await api.addDownload({
         server: r.server,
         port: r.port,
-        ssl: false,
+        ssl: !!r.ssl,
         nickname: 'xdccuser',
         channel: r.channel,
         bot: r.bot,
@@ -85,7 +85,7 @@ export default function SearchTab({ onDownloaded, query, onQueryChange, results,
             <tbody>
               {results.map((r, i) => {
                 const key = `${r.bot}|${r.pack}`
-                const botInfo = { server: r.server, port: r.port, ssl: false, nickname: 'xdccuser', channel: r.channel, bot: r.bot }
+                const botInfo = { server: r.server, port: r.port, ssl: !!r.ssl, nickname: 'xdccuser', channel: r.channel, bot: r.bot }
                 return (
                   <tr key={i}>
                     <td className={styles.filename}>{r.filename}</td>
