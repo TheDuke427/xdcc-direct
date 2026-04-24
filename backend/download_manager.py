@@ -205,8 +205,7 @@ class DownloadManager:
                     message_cb=bot_message,
                     ssl=job.ssl,
                 )
-                timeout = int(os.environ.get("XDCC_TIMEOUT", "300"))
-                file_path = await asyncio.wait_for(client.run(), timeout=timeout)
+                file_path = await client.run()
                 job.file_path = file_path
                 job.speed = 0.0
                 job.eta = None
