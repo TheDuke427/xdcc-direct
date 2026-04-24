@@ -44,11 +44,14 @@ async def init_db():
                 UNIQUE(server, bot, pack)
             );
 
-            ALTER TABLE packs ADD COLUMN IF NOT EXISTS ssl INTEGER NOT NULL DEFAULT 0;
-
             CREATE INDEX IF NOT EXISTS idx_filename  ON packs(filename COLLATE NOCASE);
             CREATE INDEX IF NOT EXISTS idx_last_seen ON packs(last_seen);
         """)
+        try:
+            await conn.execute("ALTER TABLE packs ADD COLUMN ssl INTEGER NOT NULL DEFAULT 0")
+            await conn.commit()
+        except Exception:
+            pass  # column already exists
         row = await (await conn.execute("SELECT COUNT(*) FROM channels")).fetchone()
         if row[0] == 0:
             await conn.executemany(
