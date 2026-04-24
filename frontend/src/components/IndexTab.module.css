@@ -79,6 +79,24 @@
 .dot_on  { background: #4ade80; }
 .dot_off { background: #64748b; }
 
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.purgeBtn {
+  background: transparent;
+  border: 1px solid #333;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.purgeBtn:hover { color: #fb923c; border-color: #fb923c; }
+
 .removeBtn {
   background: transparent;
   border: 1px solid #333;

@@ -129,6 +129,20 @@ async def remove_channel(channel_id: int):
         await conn.commit()
 
 
+async def purge_channel_packs(channel_id: int) -> int:
+    async with aiosqlite.connect(DB_PATH) as conn:
+        row = await (await conn.execute(
+            "SELECT server, port, channel FROM channels WHERE id = ?", (channel_id,)
+        )).fetchone()
+        if not row:
+            return 0
+        cur = await conn.execute(
+            "DELETE FROM packs WHERE server = ? AND port = ? AND channel = ?", row
+        )
+        await conn.commit()
+        return cur.rowcount
+
+
 async def get_stats() -> dict:
     async with aiosqlite.connect(DB_PATH) as conn:
         total = await (await conn.execute("SELECT COUNT(*) FROM packs")).fetchone()

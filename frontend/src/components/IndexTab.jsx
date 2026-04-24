@@ -56,6 +56,17 @@ export default function IndexTab() {
     }
   }
 
+  async function handlePurgePacks(id, label) {
+    if (!confirm(`Delete all indexed packs for ${label}?`)) return
+    try {
+      const res = await api.purgeChannelPacks(id)
+      await load()
+      alert(`Deleted ${res.deleted.toLocaleString()} packs.`)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   if (error) return <p className={styles.error}>{error}</p>
   if (!status) return <p className={styles.loading}>Loading…</p>
 
@@ -98,7 +109,8 @@ export default function IndexTab() {
               </td>
               <td className={styles.num}>{ch.packs_seen.toLocaleString()}</td>
               <td className={styles.time}>{fmt(ch.last_activity)}</td>
-              <td>
+              <td className={styles.actions}>
+                <button className={styles.purgeBtn} onClick={() => handlePurgePacks(ch.id, `${ch.channel} @ ${ch.server}:${ch.port}`)}>purge packs</button>
                 <button className={styles.removeBtn} onClick={() => handleRemove(ch.id)}>✕</button>
               </td>
             </tr>

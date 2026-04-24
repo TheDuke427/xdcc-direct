@@ -195,6 +195,12 @@ async def remove_channel(channel_id: int):
     await indexer.remove_channel(channel_id)
 
 
+@app.delete("/api/index/channels/{channel_id}/packs", status_code=200)
+async def purge_channel_packs(channel_id: int):
+    count = await db.purge_channel_packs(channel_id)
+    return {"deleted": count}
+
+
 # ------------------------------------------------------------------
 # VPN control (proxies to gluetun HTTP control server)
 # ------------------------------------------------------------------
