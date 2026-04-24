@@ -73,16 +73,16 @@ class ChannelIndexer:
                 delay = min(delay * 2, RECONNECT_MAX)
 
     async def _connect_and_index(self):
-        host = await _resolve(self.server)
-        logger.info("Indexer %s %s connecting to %s:%d", self.network, self.channel, host, self.port)
-
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl_mod.CERT_NONE
-            reader, writer = await asyncio.open_connection(host, self.port, ssl=ctx)
+            logger.info("Indexer %s %s connecting to %s:%d (SSL)", self.network, self.channel, self.server, self.port)
+            reader, writer = await asyncio.open_connection(self.server, self.port, ssl=ctx)
         else:
+            host = await _resolve(self.server)
+            logger.info("Indexer %s %s connecting to %s:%d", self.network, self.channel, host, self.port)
             reader, writer = await asyncio.open_connection(host, self.port)
 
         nick = f"idx{self.id}"

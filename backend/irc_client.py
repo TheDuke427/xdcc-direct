@@ -110,18 +110,18 @@ class IRCClient:
 
     async def _connect(self):
         logger.info("Connecting to %s:%d", self.server, self.port)
-        host = await _resolve(self.server)
-        if host != self.server:
-            logger.info("Resolved %s -> %s", self.server, host)
         if self.ssl:
             import ssl as ssl_mod
             ctx = ssl_mod.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl_mod.CERT_NONE
             self._reader, self._writer = await asyncio.open_connection(
-                host, self.port, ssl=ctx
+                self.server, self.port, ssl=ctx
             )
         else:
+            host = await _resolve(self.server)
+            if host != self.server:
+                logger.info("Resolved %s -> %s", self.server, host)
             self._reader, self._writer = await asyncio.open_connection(
                 host, self.port
             )
